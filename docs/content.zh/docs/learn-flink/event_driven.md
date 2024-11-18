@@ -151,12 +151,12 @@ public void processElement(
     long eventTime = fare.getEventTime();
     TimerService timerService = ctx.timerService();
 
-    if (eventTime <= timerService.currentWatermark()) {
+    // 将 eventTime 向上取值并将结果赋值到包含当前事件的窗口的末尾时间点。
+    long endOfWindow = (eventTime - (eventTime % durationMsec) + durationMsec - 1);
+
+    if (endOfWindow <= timerService.currentWatermark()) {
         // 事件延迟；其对应的窗口已经触发。
     } else {
-        // 将 eventTime 向上取值并将结果赋值到包含当前事件的窗口的末尾时间点。
-        long endOfWindow = (eventTime - (eventTime % durationMsec) + durationMsec - 1);
-
         // 在窗口完成时将启用回调
         timerService.registerEventTimeTimer(endOfWindow);
 
@@ -246,7 +246,7 @@ private static final OutputTag<TaxiFare> lateFares = new OutputTag<TaxiFare>("la
 上面显示的是一个静态 `OutputTag<TaxiFare>` ，当在 `PseudoWindow` 的 `processElement` 方法中发出延迟事件时，可以引用它：
 
 ```java
-if (eventTime <= timerService.currentWatermark()) {
+if (endOfWindow <= timerService.currentWatermark()) {
     // 事件延迟，其对应的窗口已经触发。
     ctx.output(lateFares, fare);
 } else {
